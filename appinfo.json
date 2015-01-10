@@ -1,0 +1,22 @@
+{
+    "appKeys": {
+        "message": 1,
+        "status": 0
+    },
+    "capabilities": [
+        ""
+    ],
+    "companyName": "sojamorgens@gmail.com",
+    "longName": "Spaceteam",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "shortName": "Spaceteam",
+    "uuid": "3275f5a2-84b4-456c-b37a-d958fc2a2cb5",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
