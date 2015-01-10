@@ -1,21 +1,24 @@
 {
-    "appKeys": {
-        "KEY_LOCATION": 0,
-        "KEY_TEMPERATURE": 1
-    },
+    "appKeys": {},
     "capabilities": [
         ""
     ],
-    "companyName": "sojamorgens@gmail.com",
-    "longName": "Spacers",
+    "companyName": "mnlichtenstein@gmail.com",
+    "longName": "accel_viewer",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "file": "images/no_litter_crop.png",
+                "name": "IMAGE_NO_LITTER",
+                "type": "png"
+            }
+        ]
     },
-    "shortName": "Spacers",
-    "uuid": "1de6bb24-d09d-4508-9909-917b354f04a4",
+    "shortName": "accel_viewer",
+    "uuid": "58f98eef-9562-46ee-b3e5-fd2c5f09295a",
     "versionCode": 1,
-    "versionLabel": "2.0",
+    "versionLabel": "1.0",
     "watchapp": {
         "watchface": false
     }
