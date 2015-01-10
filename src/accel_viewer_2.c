@@ -24,28 +24,37 @@ static int accel_z[WIDTH];
 
 ///--------------------FUNCTIONS--------------------------------
 
-void draw_bar_graph(GContext* ctx, GPoint origin, int* list) {
+//GRAPHICAL DISPLAY:
+void draw_bar_graph(GContext* ctx, GPoint origin, GSize size, int* list) {
   int i;
   //draw background rect (clear out old stuff)
-  GSize graphSize = {WIDTH, HEIGHT/3};
-  GRect backgndRect = { .origin = origin, .size = graphSize };
+  GRect backgndRect = { .origin = origin, .size = size };
   graphics_context_set_fill_color(ctx,	GColorWhite);	
   graphics_fill_rect(	ctx, backgndRect, 0, GCornerNone );
   //draw bar graph
   for(i=0 ; i < (int)WIDTH ; i++) {
+    int xorg=origin.x+i;
+    int xdest=xorg; //vertial lines
+    int yorg=origin.y + size.h/2;
+    int ydest=yorg + list[i]/100;
+    //make sure it fits:
+    if(ydest < origin.y) ydest = origin.y;
+    if(ydest > origin.y + size.h) ydest = origin.y + size.h;
+    
     graphics_draw_line(	ctx,
-      (GPoint) {origin.x+i, origin.y + HEIGHT/3/2 },
-      (GPoint) {origin.x+i, origin.y + list[i]} 
+      (GPoint) {xorg, yorg},
+      (GPoint) {xdest, ydest} 
     );
   }
 }
 
 static void bargraph_layer_update_callback(Layer *me, GContext *context) {
-  draw_bar_graph(context, (GPoint){0, 0*HEIGHT/3}, accel_x);
-  draw_bar_graph(context, (GPoint){0, 1*HEIGHT/3}, accel_y);
-  draw_bar_graph(context, (GPoint){0, 2*HEIGHT/3}, accel_z);
+  draw_bar_graph(context, (GPoint){0, 0*HEIGHT/3},(GSize){WIDTH,HEIGHT/3-1}, accel_x);
+  draw_bar_graph(context, (GPoint){0, 1*HEIGHT/3},(GSize){WIDTH,HEIGHT/3-1}, accel_y);
+  draw_bar_graph(context, (GPoint){0, 2*HEIGHT/3},(GSize){WIDTH,HEIGHT/3-1}, accel_z);
 }
 
+//ACCELEROMETRY:
 static void accel_handler(AccelData *data, uint32_t num_samples){
   AccelData accel = (AccelData) { .x = 0, .y = 0, .z = 0 };
   accel_service_peek(&accel);
@@ -57,10 +66,11 @@ static void accel_handler(AccelData *data, uint32_t num_samples){
     accel_z[i]=accel_z[i-1];
   }
   //and then drop in the new value
-  accel_x[0]=data[0].x
+  accel_x[0]=data[0].x;
   accel_y[0]=data[0].y;
   accel_z[0]=data[0].z;
 }
+
 
 static void timer_callback(void *data) {
   
@@ -81,6 +91,22 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
   layer_destroy(bargraph_layer);
 }
+
+
+// static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+//   text_layer_set_text(text_layer, "Up");
+// }
+
+// static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+//   text_layer_set_text(text_layer, "Down");
+// }
+
+// static void click_config_provider(void *context) {
+//   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+//   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
+//   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+// }
+
 
 static void init(void) {
   window = window_create();
