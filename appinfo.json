@@ -1,21 +1,21 @@
 {
     "appKeys": {
-        "message": 1,
-        "status": 0
+        "KEY_LOCATION": 0,
+        "KEY_TEMPERATURE": 1
     },
     "capabilities": [
         ""
     ],
     "companyName": "sojamorgens@gmail.com",
-    "longName": "Spaceteam",
+    "longName": "Spacers",
     "projectType": "native",
     "resources": {
         "media": []
     },
-    "shortName": "Spaceteam",
-    "uuid": "3275f5a2-84b4-456c-b37a-d958fc2a2cb5",
+    "shortName": "Spacers",
+    "uuid": "1de6bb24-d09d-4508-9909-917b354f04a4",
     "versionCode": 1,
-    "versionLabel": "1.0",
+    "versionLabel": "2.0",
     "watchapp": {
         "watchface": false
     }
