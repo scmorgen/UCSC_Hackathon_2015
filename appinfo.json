@@ -1,22 +1,19 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_LOCATION": 4,
+        "KEY_TEMPERATURE": 5
+    },
     "capabilities": [
         ""
     ],
-    "companyName": "mnlichtenstein@gmail.com",
-    "longName": "accel_viewer",
+    "companyName": "sojamorgens@gmail.com",
+    "longName": "Message2Pebble",
     "projectType": "native",
     "resources": {
-        "media": [
-            {
-                "file": "images/no_litter_crop.png",
-                "name": "IMAGE_NO_LITTER",
-                "type": "png"
-            }
-        ]
+        "media": []
     },
-    "shortName": "accel_viewer",
-    "uuid": "58f98eef-9562-46ee-b3e5-fd2c5f09295a",
+    "shortName": "Message2Pebble",
+    "uuid": "7c02f3fb-ff81-4893-aa1c-f741b2e7c3ff",
     "versionCode": 1,
     "versionLabel": "1.0",
     "watchapp": {
