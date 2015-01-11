@@ -143,6 +143,7 @@ public class MainActivity extends ActionBarActivity {
         // Add the local service, sending the service info, network channel,
         // and listener that will be used to indicate success or failure of
         // the request.
+        Log.v(MainActivity.WIFI_APP,"Adding Local Service ");
         mManager.addLocalService(mChannel, serviceInfo, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -236,6 +237,7 @@ public class MainActivity extends ActionBarActivity {
                 Log.v(MainActivity.WIFI_APP,device.toString() + "\n");
             }
 
+            startRegistration();
             // Now, just to test connections, try to connect to first one.
             //if (peers.size()>0){
             //   Log.v(MainActivity.WIFI_APP,"Trying to connect to first device.\n");

@@ -13,20 +13,19 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -41,6 +40,13 @@ public class MainActivity extends ActionBarActivity {
     BroadcastReceiver receiver;
     private List<WifiP2pDevice> peers = new ArrayList<WifiP2pDevice>();
     private Set<WifiP2pDevice> friends = new HashSet<WifiP2pDevice>();
+    Button hostButton;
+    Button joinButton;
+    TextView hostNameTextView;
+    boolean isHostFlag = false;
+    boolean isTransmittingFlag = false;
+    private TextView friendListTextView;
+    private WifiP2pGroup mGroup;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,41 +67,84 @@ public class MainActivity extends ActionBarActivity {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this,getMainLooper(),null);
 
-        discoverService();
-        //startRegistration();
+        hostNameTextView = (TextView) findViewById(R.id.hostNameTextView);
+        hostButton = (Button) findViewById(R.id.hostButton);
+        hostButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isTransmittingFlag) return;
+                hostNameTextView.setText("I AM HOST! ALL HAIL HOST!");
+                isTransmittingFlag = true;
+                isHostFlag = true;
+                hostButton.setText("Attempting to host.");
+                joinButton.setText("");
+
+                lookForBroadcasts();
+
+                // - - - - - Try to discover peers - - - - -
+                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+
+                    @Override
+                    public void onSuccess() {
+                        Log.v(MainActivity.WIFI_APP, "HUZZAH! You have discovered peers!");
+                        mManager.requestPeers(mChannel,mPeerListListener);
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.e(MainActivity.WIFI_APP, "Error! Could not discover peers!");
+                    }
+                });
+            }
+        });
+
+        joinButton = (Button) findViewById(R.id.joinGameButton);
+        joinButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isTransmittingFlag) return;
+                isTransmittingFlag = true;
+                joinButton.setText("Looking For Host");
+                hostButton.setText("");
+
+                lookForBroadcasts();
+
+                // - - - - - Try to discover peers - - - - -
+                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+
+                    @Override
+                    public void onSuccess() {
+                        Log.v(MainActivity.WIFI_APP, "HUZZAH! You have discovered peers!");
+                        mManager.requestPeers(mChannel,mPeerListListener);
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.e(MainActivity.WIFI_APP, "Error! Could not discover peers!");
+                    }
+                });
+            }
+        });
+
+        friendListTextView = (TextView) findViewById(R.id.friendListTextView);
+    }
+
+    private void lookForBroadcasts(){
+        receiver = new WifiBroadcastReceiver(mManager, mChannel, this);
+        registerReceiver(receiver, intentFilter);
     }
 
     @Override
     public void onResume(){
         super.onResume();
         Log.v(MainActivity.WIFI_APP,"onResume() called.\n");
-        receiver = new WifiBroadcastReceiver(mManager, mChannel, this);
-        registerReceiver(receiver, intentFilter);
-
-
-
-        // - - - - - Try to discover peers - - - - -
-        mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-
-            @Override
-            public void onSuccess() {
-                Log.v(MainActivity.WIFI_APP, "HUZZAH! You have discovered peers!");
-
-                mManager.requestPeers(mChannel,mPeerListListener);
-            }
-
-            @Override
-            public void onFailure(int reason) {
-                Log.e(MainActivity.WIFI_APP, "Error! Could not discover peers!");
-            }
-        });
-
-
+        if (isTransmittingFlag) lookForBroadcasts();
     }
 
     @Override
     public void onPause(){
-        unregisterReceiver(receiver);
+        if (null != receiver) unregisterReceiver(receiver);
+
         Log.v(MainActivity.WIFI_APP,"onPause() called.\n");
         super.onPause();
     }
@@ -132,30 +181,10 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
 
 
-    private void startRegistration() {
+
+    /*private void startRegistration() {
         //  Create a string map containing information about your service.
         Map record = new HashMap();
         record.put("listenport", String.valueOf(MainActivity.SERVER_PORT));
@@ -189,11 +218,6 @@ public class MainActivity extends ActionBarActivity {
     private void discoverService() {
         WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
             @Override
-        /* Callback includes:
-         * fullDomain: full domain name: e.g "printer._ipp._tcp.local."
-         * record: TXT record dta as a map of key/value pairs.
-         * device: The device running the advertised service.
-         */
             public void onDnsSdTxtRecordAvailable(
                     String fullDomain, Map record, WifiP2pDevice device) {
                 Log.v(MainActivity.WIFI_APP, "DnsSdTxtRecord available from" + fullDomain);
@@ -242,7 +266,7 @@ public class MainActivity extends ActionBarActivity {
                 Log.v(MainActivity.WIFI_APP, "discoverServices.onSuccess() failure! :-(");
             }
         });
-    }
+    }*/
 
 
 
@@ -269,14 +293,7 @@ public class MainActivity extends ActionBarActivity {
             String action = intent.getAction();
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 Log.v(MainActivity.WIFI_APP,"State: WIFI_P2P_STATE_CHANGED_ACTION.\n");
-                // Determine if Wifi P2P mode is enabled or not, alert
-                // the Activity.
-                /*int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
-                if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-                    activity.setIsWifiP2pEnabled(true);
-                } else {
-                    activity.setIsWifiP2pEnabled(false);
-                }*/
+                
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 Log.v(MainActivity.WIFI_APP,"State: WIFI_P2P_PEERS_CHANGED_ACTION.\n");
 
@@ -289,8 +306,13 @@ public class MainActivity extends ActionBarActivity {
                 // Connection state changed!  We should probably do something about
                 // that.
 
-                if (mManager == null) {
-                    return;
+                if (mGroup != null) {
+                    Log.v(MainActivity.WIFI_APP,"Members of our group: ");
+                    for(WifiP2pDevice device : mGroup.getClientList()){
+                        Log.v(MainActivity.WIFI_APP,
+                                device.deviceAddress + " - " + device.deviceName);
+                    }
+                    Log.v(MainActivity.WIFI_APP,"Group Host is : " + mGroup.getOwner().deviceName);
                 }
 
                 NetworkInfo networkInfo = (NetworkInfo) intent
@@ -333,16 +355,15 @@ public class MainActivity extends ActionBarActivity {
             Log.v(MainActivity.WIFI_APP,"Listing peers found: \n");
             for (WifiP2pDevice device : peers){
                 Log.v(MainActivity.WIFI_APP,device.toString() + "\n");
+                Log.v(MainActivity.WIFI_APP,"- - - - - - - - - - - - -");
             }
 
             // Now, just to test connections, try to connect to first one.
-            if (peers.size()>0){
-
-                Log.v(MainActivity.WIFI_APP,"Trying to connect to first device.\n");
-
-                WifiP2pDevice device = peers.get(0);
-
-                connectToFriend(device);
+            if (isHostFlag){
+                for (int i = 0; i < peerList.getDeviceList().size(); i++) {
+                    WifiP2pDevice device = peers.get(i);
+                    connectToFriend(device);
+                }
 
             }
 
@@ -358,28 +379,44 @@ public class MainActivity extends ActionBarActivity {
     };
 
     public void connectToFriend(WifiP2pDevice device){
+        Log.v(MainActivity.WIFI_APP," - - - Entering connectToFriend() - - -");
+
 
         if (friends.contains(device)){
             Log.v(MainActivity.WIFI_APP,"This device is already your friend!");
             return;
         }
 
+        Log.v(MainActivity.WIFI_APP, "Trying to connect to device: "
+                + device.deviceAddress + " - " + device.deviceName);
+
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = device.deviceAddress;
         config.wps.setup = WpsInfo.PBC;
 
 
-
         mManager.connect(mChannel,config,new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.v(MainActivity.WIFI_APP,"Connection attempt onSuccess()! Adding to friends.\n");
-                //friends.add();
+                Log.v(MainActivity.WIFI_APP, "Connection attempt onSuccess()! Adding to friends.\n");
+
+                mManager.requestGroupInfo(mChannel,mGroupInfoListener);
+
 
                 mManager.requestConnectionInfo(mChannel,new WifiP2pManager.ConnectionInfoListener() {
                     @Override
                     public void onConnectionInfoAvailable(WifiP2pInfo info) {
+
+                        if (!info.groupFormed){
+                            Log.v(MainActivity.WIFI_APP,"Group malformed! Trying again.");
+                            mManager.requestPeers(mChannel,mPeerListListener);
+                            return;
+
+                        }
                         Log.v(MainActivity.WIFI_APP,"Is Group Owner: " + info.isGroupOwner);
+
+                                hostNameTextView.setText(info.groupOwnerAddress.toString());
+
 
                         // InetAddress from WifiP2pInfo struct.
                         InetAddress groupOwnerAddress = info.groupOwnerAddress;
@@ -406,4 +443,44 @@ public class MainActivity extends ActionBarActivity {
         });
     }
 
+
+
+    WifiP2pManager.GroupInfoListener mGroupInfoListener = new WifiP2pManager.GroupInfoListener(){
+        @Override
+        public void onGroupInfoAvailable(WifiP2pGroup group){
+            Log.v(MainActivity.WIFI_APP,"GroupInfoListener called. Saving our group to member.");
+            mGroup = group;
+        }
+    };
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 }
