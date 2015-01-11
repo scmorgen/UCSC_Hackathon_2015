@@ -1,4 +1,4 @@
-package com.spacehackteam.wifitests;
+package com.spacehackteam.gameserver;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -6,22 +6,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.NetworkInfo;
-import android.net.wifi.WpsInfo;
-import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
-import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +30,7 @@ public class MainActivity extends ActionBarActivity {
 
     public final static String WIFI_APP = "WIFI_APP";
     public final static String GAME_NAME = "_gestureGame";
-    public final static int SERVER_PORT = 2132;
+    public final static int SERVER_PORT = 8888;
     private final IntentFilter intentFilter = new IntentFilter();
     WifiP2pManager.Channel mChannel;
     WifiP2pManager mManager;
@@ -47,8 +43,7 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.v(MainActivity.WIFI_APP,"onCreate() called.\n");
-
+        Log.v(MainActivity.WIFI_APP, "onCreate() called.\n");
         // - - - Set up intent filter so system alerts about wifi get parsed by app - - -
         //  Indicates a change in the Wi-Fi P2P status.
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
@@ -61,8 +56,7 @@ public class MainActivity extends ActionBarActivity {
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this,getMainLooper(),null);
 
-        discoverService();
-        //startRegistration();
+        startRegistration();
     }
 
     @Override
@@ -79,7 +73,7 @@ public class MainActivity extends ActionBarActivity {
 
             @Override
             public void onSuccess() {
-                Log.v(MainActivity.WIFI_APP, "HUZZAH! You have discovered peers!");
+                Log.v(MainActivity.WIFI_APP, "Peer discovery successful. Requesting Peers now.");
 
                 mManager.requestPeers(mChannel,mPeerListListener);
             }
@@ -102,8 +96,8 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     public void onDestroy(){
-
         Log.v(MainActivity.WIFI_APP,"onDestroy() called.");
+
         // Release the WifiP2P group
         if (mManager != null && mChannel != null) {
             mManager.requestGroupInfo(mChannel, new WifiP2pManager.GroupInfoListener() {
@@ -132,28 +126,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
+    // - - - - - - - Registration as a service provider - - - - - - - -
 
     private void startRegistration() {
         //  Create a string map containing information about your service.
@@ -186,68 +159,6 @@ public class MainActivity extends ActionBarActivity {
         });
     }
 
-    private void discoverService() {
-        WifiP2pManager.DnsSdTxtRecordListener txtListener = new WifiP2pManager.DnsSdTxtRecordListener() {
-            @Override
-        /* Callback includes:
-         * fullDomain: full domain name: e.g "printer._ipp._tcp.local."
-         * record: TXT record dta as a map of key/value pairs.
-         * device: The device running the advertised service.
-         */
-            public void onDnsSdTxtRecordAvailable(
-                    String fullDomain, Map record, WifiP2pDevice device) {
-                Log.v(MainActivity.WIFI_APP, "DnsSdTxtRecord available from" + fullDomain);
-                Log.v(MainActivity.WIFI_APP,"From Device: " + device.toString());
-            }
-        };
-
-        WifiP2pManager.DnsSdServiceResponseListener servListener = new WifiP2pManager.DnsSdServiceResponseListener() {
-            @Override
-            public void onDnsSdServiceAvailable(String instanceName, String registrationType,
-                                                WifiP2pDevice resourceType) {
-                Log.v(MainActivity.WIFI_APP,"DNsSdServiceResponse available from" + instanceName);
-
-            }
-        };
-
-        mManager.setDnsSdResponseListeners(mChannel, servListener, txtListener);
-
-
-        WifiP2pDnsSdServiceRequest serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
-        mManager.addServiceRequest(mChannel,
-                serviceRequest,
-                new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Log.v(MainActivity.WIFI_APP,"Bonjour service request successfully placed.");
-                        // Success!
-                    }
-
-                    @Override
-                    public void onFailure(int code) {
-                        Log.v(MainActivity.WIFI_APP,"Bonjour service request unsuccessful!");
-                        // Command failed.  Check for P2P_UNSUPPORTED, ERROR, or BUSY
-                    }
-                });
-
-        mManager.discoverServices(mChannel, new WifiP2pManager.ActionListener() {
-
-            @Override
-            public void onSuccess() {
-                Log.v(MainActivity.WIFI_APP, "discoverServices.onSuccess() success!");
-            }
-
-            @Override
-            public void onFailure(int code) {
-                Log.v(MainActivity.WIFI_APP, "discoverServices.onSuccess() failure! :-(");
-            }
-        });
-    }
-
-
-
-
-
 
     private class WifiBroadcastReceiver extends BroadcastReceiver {
         Activity mActivity;
@@ -269,14 +180,7 @@ public class MainActivity extends ActionBarActivity {
             String action = intent.getAction();
             if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
                 Log.v(MainActivity.WIFI_APP,"State: WIFI_P2P_STATE_CHANGED_ACTION.\n");
-                // Determine if Wifi P2P mode is enabled or not, alert
-                // the Activity.
-                /*int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
-                if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
-                    activity.setIsWifiP2pEnabled(true);
-                } else {
-                    activity.setIsWifiP2pEnabled(false);
-                }*/
+
             } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {
                 Log.v(MainActivity.WIFI_APP,"State: WIFI_P2P_PEERS_CHANGED_ACTION.\n");
 
@@ -312,14 +216,11 @@ public class MainActivity extends ActionBarActivity {
 
             } else if (WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.equals(action)) {
                 Log.v(MainActivity.WIFI_APP,"State: WIFI_P2P_THIS_DEVICE_CHANGED_ACTION.\n");
-                /*DeviceListFragment fragment = (DeviceListFragment) activity.getFragmentManager()
-                        .findFragmentById(R.id.frag_list);
-                fragment.updateThisDevice((WifiP2pDevice) intent.getParcelableExtra(
-                        WifiP2pManager.EXTRA_WIFI_P2P_DEVICE));
-                */
             }
         }
     }
+
+
 
 
     private WifiP2pManager.PeerListListener mPeerListListener = new WifiP2pManager.PeerListListener() {
@@ -336,15 +237,11 @@ public class MainActivity extends ActionBarActivity {
             }
 
             // Now, just to test connections, try to connect to first one.
-            if (peers.size()>0){
-
-                Log.v(MainActivity.WIFI_APP,"Trying to connect to first device.\n");
-
-                WifiP2pDevice device = peers.get(0);
-
-                connectToFriend(device);
-
-            }
+            //if (peers.size()>0){
+            //   Log.v(MainActivity.WIFI_APP,"Trying to connect to first device.\n");
+               // WifiP2pDevice device = peers.get(0);
+                //connectToFriend(device);
+            //}
 
             // If an AdapterView is backed by this data, notify it
             // of the change.  For instance, if you have a ListView of available
@@ -357,53 +254,50 @@ public class MainActivity extends ActionBarActivity {
         }
     };
 
-    public void connectToFriend(WifiP2pDevice device){
-
-        if (friends.contains(device)){
-            Log.v(MainActivity.WIFI_APP,"This device is already your friend!");
-            return;
-        }
-
-        WifiP2pConfig config = new WifiP2pConfig();
-        config.deviceAddress = device.deviceAddress;
-        config.wps.setup = WpsInfo.PBC;
 
 
 
-        mManager.connect(mChannel,config,new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                Log.v(MainActivity.WIFI_APP,"Connection attempt onSuccess()! Adding to friends.\n");
-                //friends.add();
 
-                mManager.requestConnectionInfo(mChannel,new WifiP2pManager.ConnectionInfoListener() {
-                    @Override
-                    public void onConnectionInfoAvailable(WifiP2pInfo info) {
-                        Log.v(MainActivity.WIFI_APP,"Is Group Owner: " + info.isGroupOwner);
 
-                        // InetAddress from WifiP2pInfo struct.
-                        InetAddress groupOwnerAddress = info.groupOwnerAddress;
 
-                        // After the group negotiation, we can determine the group owner.
-                        if (info.groupFormed && info.isGroupOwner) {
-                            // Do whatever tasks are specific to the group owner.
-                            // One common case is creating a server thread and accepting
-                            // incoming connections.
-                        } else if (info.groupFormed) {
-                            // The other device acts as the client. In this case,
-                            // you'll want to create a client thread that connects to the group
-                            // owner.
-                        }
-                    }
-                });
-            }
 
-            @Override
-            public void onFailure(int reason) {
-                Log.v(MainActivity.WIFI_APP,"Connection attempt onFailure()!\n");
-                Log.v(MainActivity.WIFI_APP,"Reason: " + reason);
-            }
-        });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 }
