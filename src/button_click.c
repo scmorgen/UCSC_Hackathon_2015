@@ -19,31 +19,42 @@ static int accel_z[WIDTH];
 static Layer *bargraph_layer;
 static AppTimer *timer;
 static int count;
+static int jazz_count;
 static int index=0;
 static int curXAccel, curYAccel, curZAccel;
 
 /********Gesture holders****/
 static bool looking_for_jazzhands=0;
+static bool looking_for_roof=0;
+static bool looking_for_running=0;
 static int jazz_hands[2];
-static int raise_the_roofs[2];
-static int threshold_z_jh= 600;
-static int threshold_x_RR= 400;
-static int threshold_absz_5= 600;
+static int raise_the_roof[2];
+static int running[2];
+
+static int threshold_z_jh= 700;
+static int threshold_x_rr= 400;
+static int threshold_5= 500;
+static int threshold_y=400;
+
+static int gestures_to_send[4];
 
 /*******************Button Clicks**************/
 //Private Functions to handle Button Clicks
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: SELECT");
+  count=20; //resets duration gesture message is to appear
   sendGesture(GESTURE_2);
 }
  
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: UP");
+  count=20; //resets duration gesture message is to appear;
   sendGesture(GESTURE_1);
 }
  
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
   text_layer_set_text(gesture_layer, "Last Gesture: DOWN");
+  count=20; //resets duration gesture message is to appear;
   sendGesture(GESTURE_3);
   
 }
@@ -101,15 +112,71 @@ void resetJazzHands() {
 //handles variables checking for jazzhands and sends message if it recognizes them
 void checkJazzHands(int zChange) {
     if (!looking_for_jazzhands) looking_for_jazzhands=1;
-    
+  
     if (zChange>0) jazz_hands[0]++; //increment positive change count
     else jazz_hands[1]++; //increment negative change count
     
     if (jazz_hands[0]>=3 && jazz_hands[1]>=3) {
-      text_layer_set_text(gesture_layer, "Last Gesture: JazzHands!");
-      sendGesture(GESTURE_1);
+      gestures_to_send[0]= 1;
       resetJazzHands();
     }
+}
+
+//resets Raise the Roof Count
+void resetRaiseTheRoof() {
+  raise_the_roof[0]= raise_the_roof[1]=0;
+  looking_for_roof=0;
+}
+//handles variables checking for jazzhands and sends message if it recognizes them
+void checkRaiseTheRoof(int xChange) {
+    int iterations=2;
+    if (!looking_for_roof) looking_for_roof=1;
+    
+    if (xChange>0) raise_the_roof[0]++; //increment positive change count
+    else raise_the_roof[1]++; //increment negative change count
+    
+    if (raise_the_roof[0]>=iterations && raise_the_roof[1]>=iterations) {
+      gestures_to_send[2]= 1;
+      resetRaiseTheRoof();
+    }
+}
+
+//resets Raise the Roof Count
+void resetRunning() {
+  running[0]= running[1]=0;
+  looking_for_running=0;
+}
+//handles variables checking for jazzhands and sends message if it recognizes them
+void checkRunning(int yChange) {
+    int iterations=4;
+    if (!looking_for_running) looking_for_running=1;
+    
+    if (yChange>0) running[0]++; //increment positive change count
+    else running[1]++; //increment negative change count
+    
+    if (running[0]>=iterations && running[1]>=iterations) {
+      gestures_to_send[3]= 1;
+      resetRunning();
+    }
+}
+
+
+void sendRunning() {
+   text_layer_set_text(gesture_layer, "Last Gesture: Running!");
+   sendGesture(GESTURE_3);
+}
+
+void sendRoof() {
+   text_layer_set_text(gesture_layer, "Last Gesture: Raise the Roof!");
+   sendGesture(GESTURE_3);
+}
+void sendJazzHands() {
+  text_layer_set_text(gesture_layer, "Last Gesture: JazzHands!");
+  sendGesture(GESTURE_1);
+}
+void sendPoke() {
+  text_layer_set_text(gesture_layer, "Last Gesture: Poke!");
+  sendGesture(GESTURE_2);
 }
 //ACCELEROMETRY:
 static void accel_handler(AccelData *data, uint32_t num_samples){
@@ -123,13 +190,12 @@ static void accel_handler(AccelData *data, uint32_t num_samples){
   curYAccel=data[0].y;
   curZAccel=data[0].z;
   
+  //
+  int xChange= accel_x[index]= curXAccel-accel_x[index];
+  int yChange=  accel_y[index]=curYAccel-accel_y[index];
+  int zChange = accel_z[index]=curZAccel-accel_z[index];
   
-  //first shift the lists to the right (Ew gross!)
-  
-    accel_x[index]= curXAccel-accel_x[index];
-    accel_y[index]=curYAccel-accel_y[index];
-    accel_z[index]=curZAccel-accel_z[index];
-  
+  //change pointer
   index++;
   if (index==WIDTH) index= 0;
   
@@ -137,35 +203,61 @@ static void accel_handler(AccelData *data, uint32_t num_samples){
   accel_y[index]=curYAccel;
   accel_z[index]=curZAccel;
   
-  if (index==WIDTH) index= 0;
 
   //Gestures
   //Jazz hands consists of multiple high peaks of alternating negative and positive
   //on Z Axis
-//   static int jazz_hands[2];
-// static int raise_the_roofs[2];
-// static threshold_z_jh= 600;
-// static threshold_x_RR= 400;
-// static threshold_absz_5= 600;
-  //looking for jazzhands
-  int zChange= accel_z[index-1];
-  int xChange=accel_x[index-1];
+  //Poke consists of a single high z peak
+  //Raise the roof consists of multiple medium peaks of alternating negative and positive on X axis
   
+  //looking for pokes
+  if ((zChange>=threshold_5)) {
+      count=15;
+      gestures_to_send[1]= 1;
+  }
+  
+  //looking for jazz hands
   if (abs(zChange)>=threshold_z_jh) {
-    count=20;
-    checkJazzHands(zChange);
-    }
-
+    jazz_count=12;
+    count=15;
+    checkJazzHands(zChange);    
+  }
+  
+  //looking for raise the roof
+  if (abs(xChange)>=threshold_x_rr) {
+    count=15;
+    checkRaiseTheRoof(xChange);
+  }
+  
+  if (abs(yChange)>=threshold_y) {
+    count=15;
+    checkRunning(yChange);
+  }
+  
+  
   
   //High Five is one high on Z axis
   //Raise the roof is positiveand negative on x axis
   
   if (count<=0){
     text_layer_set_text(gesture_layer, "Last Gesture: None");
+    resetRunning();
+    resetRaiseTheRoof();
+  }
+  
+  if (jazz_count<=0) {
     resetJazzHands();
   }
   count--;
+  jazz_count--;
   
+  if (index %6 ==0) {
+    if (gestures_to_send[3]) sendRunning();
+    else if (gestures_to_send[2]) sendRoof();
+    else if (gestures_to_send[0]) sendJazzHands();
+    else if (gestures_to_send[1]) sendPoke();
+    gestures_to_send[3]= gestures_to_send[2]= gestures_to_send[0]= gestures_to_send[1]= 0;
+  }
   
 }
 
