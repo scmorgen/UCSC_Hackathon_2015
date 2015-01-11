@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Bam Bam</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_text">BAM BAM</string>
+    <string name="button_host">Host</string>
+    <string name="button_join">Join</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_game_play">GamePlayActivity</string>
+    <string name="score_text">SCORE: 69</string>
+    <string name="instruction_text">CURRENT INSTR: High five Batman!</string>
+    <string name="DEBUG_success_gesture">PREV INSTR: Check ass of Wobbledoo</string>
+    <string name="title_activity_host">HostActivity</string>
+    <string name="active_instructions_text">INSTRUCTIONS</string>
+    <string name="phone_roster_text">PHONE ROSTER</string>
+    <string name="last_received_text">LAST RECEIVED</string>
+    <string name="title_activity_end">EndActivity</string>
+    <string name="hello_world">Hello world!</string>
+
+</resources>
